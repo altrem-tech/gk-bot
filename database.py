@@ -3,7 +3,7 @@ import random
 
 import aiosqlite
 
-DB_NAME = "database.db"
+DB_NAME = "/home/ubuntu/gk-bot/database.db"
 
 SPECIALITIES = [
     "Стрелок",

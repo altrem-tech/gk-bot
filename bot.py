@@ -245,7 +245,9 @@ async def reputation_system(message: Message):
     rep += 1
     new_stars = rep // 3
 
-    await update_tsurumi_rep(user_id, chat_id, rep)
+    target_id = message.reply_to_message.from_user.id
+
+    await update_tsurumi_rep(target_id, chat_id, rep)
 
     if new_stars > old_stars:
         await message.answer(
