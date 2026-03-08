@@ -171,6 +171,10 @@ def speciality_keyboard():
             [InlineKeyboardButton(text=spec, callback_data=f"spec_{spec}")]
         )
 
+    buttons.append(
+        [InlineKeyboardButton(text="🎲 Случайная", callback_data="spec_random")]
+    )
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 @dp.message(Command("speciality"))
@@ -204,6 +208,33 @@ async def choose_speciality(message: Message):
         reply_markup=speciality_keyboard()
     )
 
+
+@dp.callback_query(F.data == "spec_random")
+async def random_speciality(callback: CallbackQuery):
+
+    user = await get_user(callback.from_user.id, callback.message.chat.id)
+
+    if not user:
+        await add_user(callback.from_user.id, callback.message.chat.id, callback.from_user.username)
+        user = await get_user(callback.from_user.id, callback.message.chat.id)
+
+    current_spec = user[9]
+
+    speciality = random.choice([s for s in SPECIALITIES if s != current_spec])
+
+    await update_speciality(
+        callback.from_user.id,
+        callback.message.chat.id,
+        speciality
+    )
+
+    await callback.message.edit_text(
+        f"🎲 Вам назначена случайная специальность:\n🪖 {speciality}"
+    )
+
+    await callback.answer()
+
+
 @dp.callback_query(F.data.startswith("spec_"))
 async def set_speciality(callback: CallbackQuery):
 
@@ -220,7 +251,6 @@ async def set_speciality(callback: CallbackQuery):
     )
 
     await callback.answer()
-
 
 @dp.message(F.reply_to_message)
 async def reputation_system(message: Message):
@@ -256,7 +286,7 @@ async def reputation_system(message: Message):
         )
 
 
-@dp.message(F.text.startswith("рапорт"))
+@dp.message(lambda message: message.text and message.text.lower().startswith("рапорт"))
 async def profile(message: Message):
     user_id = message.from_user.id
     chat_id = message.chat.id
