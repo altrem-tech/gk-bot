@@ -4,6 +4,7 @@ import random
 import aiosqlite
 
 DB_NAME = "/home/ubuntu/gk-bot/database.db"
+# DB_NAME = "database.db"
 
 SPECIALITIES = [
     "Стрелок",
@@ -95,3 +96,11 @@ async def update_speciality(user_id, chat_id, speciality):
             (speciality, last_change, user_id, chat_id)
         )
         await db.commit()
+
+async def get_all_users(chat_id):
+    async with aiosqlite.connect(DB_NAME) as db:
+        cursor = await db.execute(
+            "SELECT * FROM users WHERE chat_id = ?",
+            (chat_id,)
+        )
+        return await cursor.fetchall()

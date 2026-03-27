@@ -51,7 +51,8 @@ def main_menu():
             [InlineKeyboardButton(text="📄 Рапорт", callback_data="menu_profile")],
             [InlineKeyboardButton(text="🪖 Сменить специальность", callback_data="menu_speciality")],
             [InlineKeyboardButton(text="✏️ Сменить имя", callback_data="menu_newname")],
-            [InlineKeyboardButton(text="♻️ Сбросить имя", callback_data="menu_resetname")]
+            [InlineKeyboardButton(text="♻️ Сбросить имя", callback_data="menu_resetname")],
+            [InlineKeyboardButton(text="🗻 Список солдат", callback_data="menu_top")],
         ]
     )
 
@@ -157,6 +158,12 @@ async def set_name(message: Message):
     await update_name(message.from_user.id, message.chat.id, new_name)
     await message.answer(f"Имя успешно изменено. Текущее имя: {new_name}")
 
+@dp.callback_query(F.data == "menu_top")
+async def menu_top(callback: CallbackQuery):
+    await top_players(callback.message)
+
+    await callback.answer()
+
 
 @dp.message(Command("resetname"))
 async def reset_name(message: Message):
@@ -221,6 +228,34 @@ async def set_speciality(callback: CallbackQuery):
 
     await callback.answer()
 
+@dp.message(Command("army"))
+async def top_players(message: Message):
+    users = await get_all_users(message.chat.id)
+
+    if not users:
+        await message.answer("В этом чате пока нет солдат.")
+        return
+
+    users = [u for u in users if u[0] != (await bot.me()).id]
+
+    # Сортировка по сообщениям (индекс 4 = messages)
+    users = sorted(users, key=lambda x: x[4], reverse=True)
+
+    text = "🏯 Список лучших солдат\n\n"
+
+    medals = ["🥇", "🥈", "🥉"]
+
+    for i, user in enumerate(users, start=1):
+        name = user[3] or user[2] or "Без имени"
+        messages = user[4]
+        rank = user[5]
+
+        medal = medals[i - 1] if i <= 3 else "▫️"
+
+        text += f"{medal} {i}. {name}\n"
+        text += f"   {rank} — {messages} сообщений\n\n"
+
+    await message.answer(text)
 
 @dp.message(F.reply_to_message)
 async def reputation_system(message: Message):
@@ -236,7 +271,14 @@ async def reputation_system(message: Message):
     if text not in ["жиза", "+", "респект"]:
         return
 
-    rep = user[7]
+    target_id = message.reply_to_message.from_user.id
+
+    target = await get_user(target_id, chat_id)
+    if not target:
+        await add_user(target_id, chat_id, message.reply_to_message.from_user.username)
+        target = await get_user(target_id, chat_id)
+
+    rep = target[7]
 
     if rep >= 15:
         return
